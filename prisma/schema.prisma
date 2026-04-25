@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  phone           String    @unique
+  password        String
+  firstName       String
+  lastName        String
+  homeAddress     String
+  homeLat         Float
+  homeLng         Float
+  officeId        String
+  officeEntryTime String    // "09:00"
+  officeExitTime  String    // "18:00"
+  hasVehicle      Boolean   @default(true)
+  vehicleCapacity Int?      // max 4 including driver
+  vehiclePlate    String?   
+  isVerified      Boolean   @default(false)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  office          Office    @relation(fields: [officeId], references: [id])
+  groupMemberships GroupMember[]
+  driverRides     Ride[]    @relation("Driver")
+  refreshTokens   RefreshToken[]
+}
+
+model Office {
+  id        String  @id @default(uuid())
+  name      String
+  address   String
+  lat       Float
+  lng       Float
+  hub       String  // e.g. "Hinjewadi Phase 1"
+  users     User[]
+  groups    Group[]
+}
+
+model Group {
+  id          String   @id @default(uuid())
+  name        String
+  officeId    String
+  entryTime   String
+  exitTime    String
+  areaZone    String   // e.g. "Baner", "Wakad", "Aundh"
+  maxCapacity Int      @default(4)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  office      Office   @relation(fields: [officeId], references: [id])
+  members     GroupMember[]
+  rides       Ride[]
+}
+
+model GroupMember {
+  id        String   @id @default(uuid())
+  userId    String
+  groupId   String
+  joinedAt  DateTime @default(now())
+  role      String   @default("member") // "driver" | "member"
+
+  user      User     @relation(fields: [userId], references: [id])
+  group     Group    @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, groupId])
+}
+
+model Ride {
+  id          String   @id @default(uuid())
+  groupId     String
+  driverId    String
+  date        DateTime
+  direction   String   // "toOffice" | "fromOffice"
+  status      String   @default("scheduled") // "scheduled" | "ongoing" | "completed" | "cancelled"
+  createdAt   DateTime @default(now())
+
+  group       Group    @relation(fields: [groupId], references: [id])
+  driver      User     @relation("Driver", fields: [driverId], references: [id])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
