@@ -1,5 +1,6 @@
 node_modules
 .env
+.ssh/
 dist/
 node_modules/
 
